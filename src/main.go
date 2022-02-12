@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis/v8"
@@ -17,10 +18,19 @@ import (
 )
 
 var redisClient *redis.Client
-var redis_ctx = context.Background()
+var redisCtx = context.Background()
 var usersCollection *mongo.Collection
 
-func getUserDataFromMongo(userId int) {
+type userDetails struct {
+	Id        int    `json:"id"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Email     string `json:"email"`
+	IpAddress string `json:"ipAddress"`
+	Employer  string `json:"employer"`
+}
+
+func getUserDataFromMongo(userId int) (userDetails, error) {
 	filter := bson.D{
 		{"$and",
 			bson.A{
@@ -30,17 +40,17 @@ func getUserDataFromMongo(userId int) {
 			},
 		},
 	}
-	var result bson.M
+	var result userDetails
 	err := usersCollection.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
-		log.Fatal(err)
+		return userDetails{}, err
 	}
-	fmt.Println("displaying the first result from the search filter")
-	fmt.Println(result)
+
+	return result, nil
 }
 
 func getUserDataFromCache(userId int) (string, error) {
-	userData, err := redisClient.Get(redis_ctx, strconv.Itoa(userId)).Result()
+	userData, err := redisClient.Get(redisCtx, strconv.Itoa(userId)).Result()
 	if err != nil {
 		return "", err
 	}
@@ -76,12 +86,30 @@ func user(w http.ResponseWriter, r *http.Request) {
 		userData, err := getUserDataFromCache(userID)
 		if err != nil {
 			// Fetch user data from mongodb
-			getUserDataFromMongo(userID)
-			// add user data to redis
+			userData, err := getUserDataFromMongo(userID)
+			if err != nil {
+				fmt.Fprintf(w, "Error: No user with such ID exists")
+			} else {
+				// converting user data from struct to JSON
+				userDataJson, err := json.Marshal(userData)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+				// Inserting user data into cache (REDIS) with the expiry of 1 minute
+				redisClient.Set(redisCtx, strconv.Itoa(userID), string(userDataJson), 1000000000)
+
+				// Sending user details in response
+				fmt.Fprintf(w, "%s", string(userDataJson))
+				return
+			}
 			// send user data to requester
 			fmt.Fprintf(w, "Error: %s\n", err.Error())
+			return
 		} else {
-			fmt.Fprintf(w, "UserID: %s\n", userData)
+			fmt.Fprintf(w, "%s", userData)
+			return
 		}
 	}
 
@@ -106,7 +134,7 @@ func main() {
 	})
 
 	// Ping Redis to make sure its working
-	ping, err := redisClient.Ping(redis_ctx).Result()
+	ping, err := redisClient.Ping(redisCtx).Result()
 	if err != nil {
 		log.Fatal(err.Error())
 		os.Exit(1) // exit
