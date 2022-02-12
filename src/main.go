@@ -115,10 +115,6 @@ func user(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello Twitch from docker!\n")
-}
-
 func main() {
 	var mongoDbName = "Twitch"
 	var mongoCollectionName = "Users"
@@ -163,8 +159,7 @@ func main() {
 	usersCollection = mongoClient.Database(mongoDbName).Collection(mongoCollectionName)
 
 	// Setting up HTTP server routes
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/user", user)  // /user/:id
+	http.HandleFunc("/user", user)  // /user
 	http.HandleFunc("/user/", user) // /user/:id
 
 	fmt.Println("Starting Server")
