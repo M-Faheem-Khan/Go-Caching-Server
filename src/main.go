@@ -98,7 +98,7 @@ func user(w http.ResponseWriter, r *http.Request) {
 				}
 
 				// Inserting user data into cache (REDIS) with the expiry of 1 minute
-				redisClient.Set(redisCtx, strconv.Itoa(userID), string(userDataJson), 1000000000)
+				redisClient.Set(redisCtx, strconv.Itoa(userID), string(userDataJson), 3600000000000)
 
 				// Sending user details in response
 				fmt.Fprintf(w, "%s", string(userDataJson))
