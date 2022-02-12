@@ -16,7 +16,7 @@ The server exposes a single HTTP restful route on port `8001`, `/user/{id}`. Whe
 }
 ```
 
-![Architecture Overview](https://github.com/M-Faheem-Khan/Go-Caching-Server/blob/main/images/arch_overview.PNG)
+![Architecture Overview]
 
 --- 
 Built on Twitch: https://www.twitch.tv/notdankenoughq
