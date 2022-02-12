@@ -4,20 +4,19 @@ services:
   mongo-server:
     image: mongo:4.2-bionic
     restart: always
-    ports:
-      - "27017:27017"
     volumes:
-      - /home/bean/Twitch/cachingServer/data/mongo/data:/data
+      - ./data/mongo/data:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
 
   redis-server:
     image: redis
+    restart: always
     command: >
       --requirepass ${REDIS_PASSWORD}
     volumes:
-      - /home/bean/Twitch/cachingServer/data/redis/data:/data
+      - ./data/redis/data:/data
   
   caching-server:
     build: .
